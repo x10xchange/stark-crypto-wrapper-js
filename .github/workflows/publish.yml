@@ -29,9 +29,10 @@ jobs:
         run: |
          sed -i -e 's|"name": "stark-crypto-wrapper-wasm"|"name": "@x10xchange/stark-crypto-wrapper-wasm"|g' pkg/package.json
 
-      - name: Install dependencies
-        run: yarn
-      - name: Publish package
-        run: yarn publish --access restricted
+      - name: Packaged wasm
+        run: wasm-pack pack
+
+      - name: Publish wasm
+        run: wasm-pack publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

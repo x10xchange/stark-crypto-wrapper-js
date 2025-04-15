@@ -1,0 +1,12 @@
+[package]
+name = "stark-crypto-wrapper-wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rust-crypto-lib-base = { path = "./rust-crypto-lib-base" }
+starknet-crypto = "0.7.4"
+wasm-bindgen = "0.2.100"

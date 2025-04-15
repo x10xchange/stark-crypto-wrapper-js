@@ -16,7 +16,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-          registry-url: 'https://npm.pkg.github.com'
           scope: '@x10xchange'
 
       - name: Install wasm dependencies
@@ -33,6 +32,6 @@ jobs:
         run: wasm-pack pack
 
       - name: Publish wasm
-        run: wasm-pack publish
+        run: wasm-pack publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}

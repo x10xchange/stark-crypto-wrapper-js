@@ -105,7 +105,7 @@ pub fn get_transfer_msg(
         name: domain_name.to_string(),
         version: domain_version.to_string(),
         chain_id: domain_chain_id.to_string(),
-        revision: domain_revision.to_string(),
+        revision: u32::from_str_radix(domain_revision, 10).unwrap(),
     };
     let message = transfer_args.message_hash(&domain, user_key).unwrap();
     return message.to_hex_string();
@@ -166,7 +166,7 @@ pub fn get_order_msg(
         name: domain_name.to_owned(),
         version: domain_version.to_owned(),
         chain_id: domain_chain_id.to_owned(),
-        revision: domain_revision.to_owned(),
+        revision: u32::from_str_radix(domain_revision, 10).unwrap(),
     };
     let message = order.message_hash(&domain, user_key).unwrap();
 
@@ -233,8 +233,8 @@ mod tests {
             domain_revision,
         );
 
-        let expected = Felt::from_dec_str(
-            "3466709383481810859947861276094399756712395853968834582933311835633294184917",
+        let expected = Felt::from_hex(
+            "0x56c7b21d13b79a33d7700dda20e22246c25e89818249504148174f527fc3f8f",
         )
         .unwrap();
         assert_eq!(transfer_msg, expected.to_hex_string());

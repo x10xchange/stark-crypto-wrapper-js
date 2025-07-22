@@ -1,13 +1,8 @@
+use rust_crypto_lib_base::get_order_hash;
 use rust_crypto_lib_base::get_private_key_from_eth_signature;
+use rust_crypto_lib_base::get_transfer_hash;
 use rust_crypto_lib_base::get_withdrawal_hash;
 use rust_crypto_lib_base::sign_message as rust_sign;
-use rust_crypto_lib_base::starknet_messages::AssetId;
-use rust_crypto_lib_base::starknet_messages::OffChainMessage;
-use rust_crypto_lib_base::starknet_messages::Order;
-use rust_crypto_lib_base::starknet_messages::PositionId;
-use rust_crypto_lib_base::starknet_messages::StarknetDomain;
-use rust_crypto_lib_base::starknet_messages::Timestamp;
-use rust_crypto_lib_base::starknet_messages::TransferArgs;
 
 use starknet_crypto::Felt;
 use wasm_bindgen::prelude::*;
@@ -110,37 +105,21 @@ pub fn get_transfer_msg(
     domain_chain_id: &str,
     domain_revision: &str,
 ) -> String {
-    // hex fields
-    let collateral_id = Felt::from_hex(&collateral_id_hex).unwrap();
-    let user_key = Felt::from_hex(&user_public_key_hex).unwrap();
-
-    // decimal fields
-    let recipient = u32::from_str_radix(&recipient_position_id, 10).unwrap();
-    let position_id = u32::from_str_radix(&sender_position_id, 10).unwrap();
-    let amount = u64::from_str_radix(&amount, 10).unwrap();
-    let expiration = u64::from_str_radix(&expiration, 10).unwrap();
-    let salt = Felt::from_dec_str(&salt).unwrap();
-
-    let transfer_args = TransferArgs {
-        recipient: PositionId { value: recipient },
-        position_id: PositionId { value: position_id },
-        collateral_id: AssetId {
-            value: collateral_id,
-        },
-        amount,
-        expiration: Timestamp {
-            seconds: expiration,
-        },
-        salt,
-    };
-    let domain = StarknetDomain {
-        name: domain_name.to_string(),
-        version: domain_version.to_string(),
-        chain_id: domain_chain_id.to_string(),
-        revision: u32::from_str_radix(domain_revision, 10).unwrap(),
-    };
-    let message = transfer_args.message_hash(&domain, user_key).unwrap();
-    return message.to_hex_string();
+    return get_transfer_hash(
+        recipient_position_id.to_owned(),
+        sender_position_id.to_owned(),
+        collateral_id_hex.to_owned(),
+        amount.to_owned(),
+        expiration.to_owned(),
+        salt.to_owned(),
+        user_public_key_hex.to_owned(),
+        domain_name.to_owned(),
+        domain_version.to_owned(),
+        domain_chain_id.to_owned(),
+        domain_revision.to_owned(),
+    )
+    .unwrap()
+    .to_hex_string();
 }
 
 #[wasm_bindgen]
@@ -161,48 +140,24 @@ pub fn get_order_msg(
     domain_chain_id: &str,
     domain_revision: &str,
 ) -> String {
-    //hex fields
-    let base_asset_id = Felt::from_hex(&base_asset_id_hex).unwrap();
-    let quote_asset_id = Felt::from_hex(&quote_asset_id_hex).unwrap();
-    let fee_asset_id = Felt::from_hex(&fee_asset_id_hex).unwrap();
-    let user_key = Felt::from_hex(&user_public_key_hex).unwrap();
-
-    //decimal fields
-    let position_id = u32::from_str_radix(&position_id, 10).unwrap();
-    let base_amount = i64::from_str_radix(&base_amount, 10).unwrap();
-    let quote_amount = i64::from_str_radix(&quote_amount, 10).unwrap();
-    let fee_amount = u64::from_str_radix(&fee_amount, 10).unwrap();
-    let expiration = u64::from_str_radix(&expiration, 10).unwrap();
-    let salt = u64::from_str_radix(&salt, 10).unwrap();
-
-    let order = Order {
-        position_id: PositionId { value: position_id },
-        base_asset_id: AssetId {
-            value: base_asset_id,
-        },
-        base_amount: base_amount,
-        quote_asset_id: AssetId {
-            value: quote_asset_id,
-        },
-        quote_amount: quote_amount,
-        fee_asset_id: AssetId {
-            value: fee_asset_id,
-        },
-        fee_amount: fee_amount,
-        expiration: Timestamp {
-            seconds: expiration,
-        },
-        salt: salt.try_into().unwrap(),
-    };
-    let domain = StarknetDomain {
-        name: domain_name.to_owned(),
-        version: domain_version.to_owned(),
-        chain_id: domain_chain_id.to_owned(),
-        revision: u32::from_str_radix(domain_revision, 10).unwrap(),
-    };
-    let message = order.message_hash(&domain, user_key).unwrap();
-
-    return message.to_hex_string();
+    return get_order_hash(
+        position_id.to_owned(),
+        base_asset_id_hex.to_owned(),
+        base_amount.to_owned(),
+        quote_asset_id_hex.to_owned(),
+        quote_amount.to_owned(),
+        fee_asset_id_hex.to_owned(),
+        fee_amount.to_owned(),
+        expiration.to_owned(),
+        salt.to_owned(),
+        user_public_key_hex.to_owned(),
+        domain_name.to_owned(),
+        domain_version.to_owned(),
+        domain_chain_id.to_owned(),
+        domain_revision.to_owned(),
+    )
+    .unwrap()
+    .to_hex_string();
 }
 
 #[cfg(test)]

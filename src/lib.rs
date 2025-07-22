@@ -1,4 +1,5 @@
 use rust_crypto_lib_base::get_private_key_from_eth_signature;
+use rust_crypto_lib_base::get_withdrawal_hash;
 use rust_crypto_lib_base::sign_message as rust_sign;
 use rust_crypto_lib_base::starknet_messages::AssetId;
 use rust_crypto_lib_base::starknet_messages::OffChainMessage;
@@ -61,6 +62,37 @@ pub fn sign_message(private_key_hex: &str, message_hex: &str) -> StarkSignature 
             )
         })
         .unwrap();
+}
+
+#[wasm_bindgen]
+pub fn get_withdraw_msg(
+    recipient_hex: String,
+    position_id: String,
+    collateral_id_hex: String,
+    amount: String,
+    expiration: String,
+    salt: String,
+    user_public_key_hex: String,
+    domain_name: String,
+    domain_version: String,
+    domain_chain_id: String,
+    domain_revision: String,
+) -> String {
+    return get_withdrawal_hash(
+        recipient_hex,
+        position_id,
+        collateral_id_hex,
+        amount,
+        expiration,
+        salt,
+        user_public_key_hex,
+        domain_name,
+        domain_version,
+        domain_chain_id,
+        domain_revision,
+    )
+    .unwrap()
+    .to_hex_string();
 }
 
 #[wasm_bindgen]
@@ -233,10 +265,9 @@ mod tests {
             domain_revision,
         );
 
-        let expected = Felt::from_hex(
-            "0x56c7b21d13b79a33d7700dda20e22246c25e89818249504148174f527fc3f8f",
-        )
-        .unwrap();
+        let expected =
+            Felt::from_hex("0x56c7b21d13b79a33d7700dda20e22246c25e89818249504148174f527fc3f8f")
+                .unwrap();
         assert_eq!(transfer_msg, expected.to_hex_string());
     }
 }

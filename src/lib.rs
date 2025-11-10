@@ -1,3 +1,4 @@
+use rust_crypto_lib_base::get_limit_order_hash;
 use rust_crypto_lib_base::get_order_hash;
 use rust_crypto_lib_base::get_private_key_from_eth_signature;
 use rust_crypto_lib_base::get_transfer_hash;
@@ -142,6 +143,45 @@ pub fn get_order_msg(
 ) -> String {
     return get_order_hash(
         position_id.to_owned(),
+        base_asset_id_hex.to_owned(),
+        base_amount.to_owned(),
+        quote_asset_id_hex.to_owned(),
+        quote_amount.to_owned(),
+        fee_asset_id_hex.to_owned(),
+        fee_amount.to_owned(),
+        expiration.to_owned(),
+        salt.to_owned(),
+        user_public_key_hex.to_owned(),
+        domain_name.to_owned(),
+        domain_version.to_owned(),
+        domain_chain_id.to_owned(),
+        domain_revision.to_owned(),
+    )
+    .unwrap()
+    .to_hex_string();
+}
+
+#[wasm_bindgen]
+pub fn get_limit_order_msg(
+    source_position_id: &str,
+    receive_position_id: &str,
+    base_asset_id_hex: &str,
+    base_amount: &str,
+    quote_asset_id_hex: &str,
+    quote_amount: &str,
+    fee_asset_id_hex: &str,
+    fee_amount: &str,
+    expiration: &str,
+    salt: &str,
+    user_public_key_hex: &str,
+    domain_name: &str,
+    domain_version: &str,
+    domain_chain_id: &str,
+    domain_revision: &str,
+) -> String {
+    return get_limit_order_hash(
+        source_position_id.to_owned(),
+        receive_position_id.to_owned(),
         base_asset_id_hex.to_owned(),
         base_amount.to_owned(),
         quote_asset_id_hex.to_owned(),

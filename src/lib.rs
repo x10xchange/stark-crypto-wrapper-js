@@ -2,6 +2,7 @@ use rust_crypto_lib_base::get_limit_order_hash;
 use rust_crypto_lib_base::get_order_hash;
 use rust_crypto_lib_base::get_private_key_from_eth_signature;
 use rust_crypto_lib_base::get_transfer_hash;
+use rust_crypto_lib_base::get_withdraw_and_stake_hash;
 use rust_crypto_lib_base::get_withdrawal_hash;
 use rust_crypto_lib_base::sign_message as rust_sign;
 
@@ -200,6 +201,39 @@ pub fn get_limit_order_msg(
     .to_hex_string();
 }
 
+#[wasm_bindgen]
+pub fn get_withdraw_and_stake_msg(
+    position_id: &str,
+    collateral_id_hex: &str,
+    amount: &str,
+    vault_hex: &str,
+    beneficiary_hex: &str,
+    expiration: &str,
+    salt: &str,
+    user_public_key_hex: &str,
+    domain_name: &str,
+    domain_version: &str,
+    domain_chain_id: &str,
+    domain_revision: &str,
+) -> String {
+    return get_withdraw_and_stake_hash(
+        position_id.to_owned(),
+        collateral_id_hex.to_owned(),
+        amount.to_owned(),
+        vault_hex.to_owned(),
+        beneficiary_hex.to_owned(),
+        expiration.to_owned(),
+        salt.to_owned(),
+        user_public_key_hex.to_owned(),
+        domain_name.to_owned(),
+        domain_version.to_owned(),
+        domain_chain_id.to_owned(),
+        domain_revision.to_owned(),
+    )
+    .unwrap()
+    .to_hex_string();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -264,5 +298,30 @@ mod tests {
             Felt::from_hex("0x56c7b21d13b79a33d7700dda20e22246c25e89818249504148174f527fc3f8f")
                 .unwrap();
         assert_eq!(transfer_msg, expected.to_hex_string());
+    }
+
+    // signed_messages.cairo in starknet-perpetual-private, perp-core, starkex-client and
+    // rust-crypto-lib-base pin the same SN_MAIN message hash.
+    #[wasm_bindgen_test]
+    fn test_get_withdraw_and_stake_msg() {
+        let msg = get_withdraw_and_stake_msg(
+            "1",
+            "0x2",
+            "3",
+            "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "6",
+            "7",
+            "0x00341db4194da6cdeff282feebca99387e754f7ab81b676262e64e194f342a87",
+            "Perpetuals",
+            "v0",
+            "SN_MAIN",
+            "1",
+        );
+
+        let expected =
+            Felt::from_hex("0x0520cb61ba9d79eb785abd3085b97a10fab05b4ee9b40133543cce1f9f7ac662")
+                .unwrap();
+        assert_eq!(msg, expected.to_hex_string());
     }
 }

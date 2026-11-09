@@ -2,6 +2,7 @@ use rust_crypto_lib_base::get_limit_order_hash;
 use rust_crypto_lib_base::get_order_hash;
 use rust_crypto_lib_base::get_private_key_from_eth_signature;
 use rust_crypto_lib_base::get_transfer_hash;
+use rust_crypto_lib_base::get_withdraw_and_stake_eip712_hash;
 use rust_crypto_lib_base::get_withdraw_and_stake_hash;
 use rust_crypto_lib_base::get_withdrawal_hash;
 use rust_crypto_lib_base::sign_message as rust_sign;
@@ -234,6 +235,61 @@ pub fn get_withdraw_and_stake_msg(
     .to_hex_string();
 }
 
+/// The `eth_signTypedData_v4` JSON document the withdraw-and-stake beneficiary's EVM wallet signs. Takes the
+/// same inputs as `get_withdraw_and_stake_msg`, plus the EVM chain id and the settlement contract.
+#[wasm_bindgen]
+pub fn get_withdraw_and_stake_eip712_typed_data(
+    position_id: &str,
+    collateral_id_hex: &str,
+    amount: &str,
+    vault_hex: &str,
+    beneficiary_hex: &str,
+    expiration: &str,
+    salt: &str,
+    evm_chain_id: &str,
+    verifying_contract_hex: &str,
+) -> String {
+    return rust_crypto_lib_base::get_withdraw_and_stake_eip712_typed_data(
+        position_id.to_owned(),
+        collateral_id_hex.to_owned(),
+        amount.to_owned(),
+        vault_hex.to_owned(),
+        beneficiary_hex.to_owned(),
+        expiration.to_owned(),
+        salt.to_owned(),
+        evm_chain_id.to_owned(),
+        verifying_contract_hex.to_owned(),
+    )
+    .unwrap();
+}
+
+/// The 32-byte EIP-712 digest (hex) of the document `get_withdraw_and_stake_eip712_typed_data` returns.
+#[wasm_bindgen]
+pub fn get_withdraw_and_stake_eip712_msg(
+    position_id: &str,
+    collateral_id_hex: &str,
+    amount: &str,
+    vault_hex: &str,
+    beneficiary_hex: &str,
+    expiration: &str,
+    salt: &str,
+    evm_chain_id: &str,
+    verifying_contract_hex: &str,
+) -> String {
+    return get_withdraw_and_stake_eip712_hash(
+        position_id.to_owned(),
+        collateral_id_hex.to_owned(),
+        amount.to_owned(),
+        vault_hex.to_owned(),
+        beneficiary_hex.to_owned(),
+        expiration.to_owned(),
+        salt.to_owned(),
+        evm_chain_id.to_owned(),
+        verifying_contract_hex.to_owned(),
+    )
+    .unwrap();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -323,5 +379,47 @@ mod tests {
             Felt::from_hex("0x0520cb61ba9d79eb785abd3085b97a10fab05b4ee9b40133543cce1f9f7ac662")
                 .unwrap();
         assert_eq!(msg, expected.to_hex_string());
+    }
+
+    // starkex-client's WithdrawAndStakeTest and zkp's perp-core pin this digest, from Foundry's `cast`.
+    #[wasm_bindgen_test]
+    fn test_get_withdraw_and_stake_eip712_msg() {
+        let msg = get_withdraw_and_stake_eip712_msg(
+            "1",
+            "0x2",
+            "3",
+            "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "6",
+            "7",
+            "31337",
+            "0x1111111111111111111111111111111111111111",
+        );
+
+        assert_eq!(
+            msg,
+            "0x8a90600e06caea19adf9b0c3217116d00026fea0b525e368fc1533243e83c658"
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_withdraw_and_stake_eip712_typed_data() {
+        let typed_data = get_withdraw_and_stake_eip712_typed_data(
+            "1",
+            "0x2",
+            "3",
+            "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "6",
+            "7",
+            "31337",
+            "0x1111111111111111111111111111111111111111",
+        );
+
+        assert!(typed_data.contains(r#""primaryType":"WithdrawAndStake""#));
+        assert!(
+            typed_data.contains(r#""beneficiary":"0x70997970c51812dc3a010c7d01b50e0d17dc79c8""#)
+        );
+        assert!(typed_data.contains(r#""chainId":31337"#));
     }
 }

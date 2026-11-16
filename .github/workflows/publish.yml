@@ -5,6 +5,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-26.04
+    environment: production-publish
 
     permissions:
       id-token: write

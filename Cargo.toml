@@ -2,6 +2,7 @@
 name = "stark-crypto-wrapper-wasm"
 version = "0.4.0"
 edition = "2024"
+repository = "https://github.com/x10xchange/stark-crypto-wrapper-js"
 
 [lib]
 crate-type = ["cdylib"]

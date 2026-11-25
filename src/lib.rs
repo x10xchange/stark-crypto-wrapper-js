@@ -290,6 +290,64 @@ pub fn get_withdraw_and_stake_eip712_msg(
     .unwrap();
 }
 
+/// The `eth_signTypedData_v4` JSON document a position's EVM owner signs to replace the position's
+/// Stark key `old_public_key_hex` (its current key) with `new_public_key_hex`, valid until
+/// `expiration` (unix seconds). Signed under the same domain as withdraw-and-stake: the EVM chain id
+/// and the settlement contract. Keys may be passed with or without leading zeros.
+#[wasm_bindgen]
+pub fn get_rotate_position_key_eip712_typed_data(
+    position_id: &str,
+    old_public_key_hex: &str,
+    new_public_key_hex: &str,
+    expiration: &str,
+    evm_chain_id: &str,
+    verifying_contract_hex: &str,
+) -> String {
+    return rust_crypto_lib_base::get_rotate_position_key_eip712_typed_data(
+        position_id.to_owned(),
+        old_public_key_hex.to_owned(),
+        new_public_key_hex.to_owned(),
+        expiration.to_owned(),
+        evm_chain_id.to_owned(),
+        verifying_contract_hex.to_owned(),
+    )
+    .unwrap();
+}
+
+/// The 32-byte EIP-712 digest (hex) of the document `get_rotate_position_key_eip712_typed_data` returns.
+#[wasm_bindgen]
+pub fn get_rotate_position_key_eip712_hash(
+    position_id: &str,
+    old_public_key_hex: &str,
+    new_public_key_hex: &str,
+    expiration: &str,
+    evm_chain_id: &str,
+    verifying_contract_hex: &str,
+) -> String {
+    return rust_crypto_lib_base::get_rotate_position_key_eip712_hash(
+        position_id.to_owned(),
+        old_public_key_hex.to_owned(),
+        new_public_key_hex.to_owned(),
+        expiration.to_owned(),
+        evm_chain_id.to_owned(),
+        verifying_contract_hex.to_owned(),
+    )
+    .unwrap();
+}
+
+/// The message the Stark key `public_key_hex` signs (with `sign_message`) to bind itself to the EVM
+/// wallet `wallet_address_hex`: `Pedersen(wallet, public_key)`. A key rotation's new key signs it
+/// with the position's owner as the wallet.
+#[wasm_bindgen]
+pub fn get_account_binding_message_hash(wallet_address_hex: &str, public_key_hex: &str) -> String {
+    return rust_crypto_lib_base::get_account_binding_message_hash(
+        wallet_address_hex.to_owned(),
+        public_key_hex.to_owned(),
+    )
+    .unwrap()
+    .to_hex_string();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -421,5 +479,76 @@ mod tests {
             typed_data.contains(r#""beneficiary":"0x70997970c51812dc3a010c7d01b50e0d17dc79c8""#)
         );
         assert!(typed_data.contains(r#""chainId":31337"#));
+    }
+
+    // The engine's RotatePositionKey vector, reproduced with Foundry and pinned by
+    // rust-crypto-lib-base: Hardhat account #1 rotates position 390776 to the Stark key of secret
+    // 0x2222.
+    const ROTATION_OLD_KEY: &str =
+        "0x03a68ed59df05e2313925e0f0c83b5951decacdf9109d7d8969541eb8b4b7e89";
+    const ROTATION_NEW_KEY: &str =
+        "0x06bfa2238af7eb25ad41eb8787234d303b4df22a36d545216bf9b91935636c80";
+
+    #[wasm_bindgen_test]
+    fn test_get_rotate_position_key_eip712_hash() {
+        let msg = get_rotate_position_key_eip712_hash(
+            "390776",
+            ROTATION_OLD_KEY,
+            ROTATION_NEW_KEY,
+            "1800000000",
+            "31337",
+            "0x1111111111111111111111111111111111111111",
+        );
+
+        assert_eq!(
+            msg,
+            "0x9fa3740d39c1daf2d0aa18e6d8cdc0ceb40cecefa8af1cda5773ad093c157da9"
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_rotate_position_key_eip712_typed_data() {
+        // The old key without its leading zero still goes into the document as a padded bytes32.
+        let typed_data = get_rotate_position_key_eip712_typed_data(
+            "390776",
+            "0x3a68ed59df05e2313925e0f0c83b5951decacdf9109d7d8969541eb8b4b7e89",
+            ROTATION_NEW_KEY,
+            "1800000000",
+            "31337",
+            "0x1111111111111111111111111111111111111111",
+        );
+
+        assert!(typed_data.contains(r#""primaryType":"RotatePositionKey""#));
+        assert!(typed_data.contains(r#""chainId":31337"#));
+        assert!(typed_data.contains(r#""positionId":390776"#));
+        assert!(typed_data.contains(&format!(r#""oldPublicKey":"{}""#, ROTATION_OLD_KEY)));
+        assert!(typed_data.contains(&format!(r#""newPublicKey":"{}""#, ROTATION_NEW_KEY)));
+        assert!(typed_data.contains(r#""expiration":1800000000"#));
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_account_binding_message_hash_and_new_key_signature() {
+        let msg = get_account_binding_message_hash(
+            "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            ROTATION_NEW_KEY,
+        );
+        let expected =
+            Felt::from_hex("0x0753b89eff476c4dd3756cb8ddab3808fad9848368499b075bc4a5ea8ed88bb4")
+                .unwrap();
+        assert_eq!(msg, expected.to_hex_string());
+
+        let sig = sign_message("0x2222", &msg);
+        assert_eq!(
+            sig.r(),
+            Felt::from_hex("0x03a806d5b2e8ec2205f2a1d460b002af51ad45bb9a525aacef57d84e78d01fef")
+                .unwrap()
+                .to_hex_string()
+        );
+        assert_eq!(
+            sig.s(),
+            Felt::from_hex("0x07c091163ea717f326d1b83a456e9a0ef5098731b010224cdd66b1995a792328")
+                .unwrap()
+                .to_hex_string()
+        );
     }
 }
